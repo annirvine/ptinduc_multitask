@@ -14,7 +14,7 @@
 <preprocessing>
 	<Path>./preprocessing/</Path>
         <learnParameters>
-          <initialBias>10</initialBias>
+          <initialBias>1</initialBias>
           <learningRate>0.1</learningRate>
           <wReg>0.0000001</wReg>
           <cReg>0.0000001</cReg>
