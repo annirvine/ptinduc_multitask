@@ -31,7 +31,8 @@ public class monoLearn {
 		  double creg = Configurator.CONFIG.getDouble("preprocessing.learnParameters.cReg");
 		  int windowsize = Configurator.CONFIG.getInt("preprocessing.learnParameters.windowSize");
 		  int cDimension = Configurator.CONFIG.getInt("preprocessing.learnParameters.cDimension");
-
+		  int learningLines = Configurator.CONFIG.getInt("preprocessing.learnParameters.learnlines",-1);
+		  
 		  Learner learner = new Learner();
 		  //Dimensionality of C, set of equivalence classes, set of s positions, window size to left and right
 		  ArrayList<Integer> positions = new ArrayList<Integer>();
@@ -39,7 +40,7 @@ public class monoLearn {
 			  positions.add(-1*i);
 			  positions.add(1*i);
 		  }
-		  learner.learnStart(cDimension, preparer.m_trgEqs, positions,windowsize,numTrgTokens, learningRate, initialBias, wreg, creg);
+		  learner.learnStart(cDimension, preparer.m_trgEqs, positions,windowsize,numTrgTokens, learningRate, initialBias, wreg, creg, learningLines);
 		  learner.learnFromData();
 		  
 	  }

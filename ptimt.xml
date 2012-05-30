@@ -16,10 +16,11 @@
         <learnParameters>
           <initialBias>10</initialBias>
           <learningRate>0.1</learningRate>
-          <wReg>0.0001</wReg>
-          <cReg>0.0001</cReg>
+          <wReg>0.0000001</wReg>
+          <cReg>0.0000001</cReg>
           <windowSize>1</windowSize>
           <cDimension>250</cDimension>
+	  <learnlines>10</learnlines>
         </learnParameters>
         <input>
                 <Context>wiki</Context>

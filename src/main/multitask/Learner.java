@@ -24,7 +24,7 @@ public class Learner {
 	 protected static final Log LOG = LogFactory.getLog(Learner.class);
 
 	
-	public void learnStart(int dims, Set<EquivalenceClass> allEqs, ArrayList<Integer> sPositions, int windowSize, double numToks, double learningRate, double initialBias, double wReg, double cReg){
+	public void learnStart(int dims, Set<EquivalenceClass> allEqs, ArrayList<Integer> sPositions, int windowSize, double numToks, double learningRate, double initialBias, double wReg, double cReg, int learningLines){
 
 		//dimensionality of C
 		m_CDimension=dims;
@@ -47,10 +47,12 @@ public class Learner {
 		//number of tokens in training data
 		m_numTokens = numToks;
 		//initial bias value - what is this???
-		//m_InitialBias = initialBias;
-		m_InitialBias = 0.0;
+		m_InitialBias = initialBias;
+		//m_InitialBias = 0.0;
 		//unsure what this does?
 		m_Bias = new HashMap<EquivalenceClass,Double>();
+		//Number of lines to learn from: -1 if all, otherwise only from x lines. useful in debugging
+		numLearnLines = learningLines;
 		
 		//Initialize W relative position parameters with a number drawn from a Gaussian, divided by 1000
 		for (EquivalenceClass eq : allEqs){
@@ -297,14 +299,16 @@ public class Learner {
 	//Iterate through dataset, through sentences, through ngrams
 	//For each ngram:
 	//1. Update weight vector FOR THAT WORD
+	//...
 	public void learnFromData() throws Exception{
-	    CorpusAccessor accessor = getAccessor(Configurator.CONFIG.getString("preprocessing.input.Context"), false);    
+		LOG.info("Beginning learning from data...");
+		CorpusAccessor accessor = getAccessor(Configurator.CONFIG.getString("preprocessing.input.Context"), false);    
 	    BufferedReader reader = new BufferedReader(accessor.getCorpusReader());
 	    String curLine;
 	    String[] curSents;
 	    String[] curSentTokens;
 	    EquivalenceClass foundEq;
-	    int min, max, numlines,hundredslines;
+	    int min, max, numlines,hundredslines, totalnumlines;
 	    //Populate hashmap: lookup string, return equivalence class
 	    // TODO: Very inefficient - think of something better
 	    HashMap<String, EquivalenceClass> eqsMap = new HashMap<String, EquivalenceClass>(m_C.size());
@@ -320,8 +324,13 @@ public class Learner {
 	    //keep up with the number of lines and hundreds of lines (for progress printing)
 	    numlines=0;
 	    hundredslines=0;
-	    while ((curLine = reader.readLine()) != null)
+	    totalnumlines=0;
+	    if (numLearnLines==-1){
+	    	numLearnLines=Integer.MAX_VALUE;
+	    }
+	    while ((curLine = reader.readLine()) != null && totalnumlines<numLearnLines)
 	    {
+	      totalnumlines+=1;
 	      numlines+=1;
 	      if (numlines==100){
 	    	  hundredslines+=1;
@@ -343,7 +352,7 @@ public class Learner {
 	          if (null != (foundEq = eqsMap.get(EquivalenceClass.getWordOfAppropriateForm(curSentTokens[numToken], m_caseSensitive))))               
 	          {        
 	   
-	        	//System.out.println("Updating based on seen word: "+curSentTokens[numToken]);
+	        	System.out.println("Updating based on seen word: "+curSentTokens[numToken]);
 	        	  
 	            // A window around the word (without going into negative indices or longer-than-string indices)
 	            min = Math.max(0, numToken - m_leftSize);
@@ -369,25 +378,34 @@ public class Learner {
         		Double numerator = getNumerator(pairedHistory,foundEq,normalizer);
         		Double probWgH = Math.exp(numerator-normalizer);
         		//System.out.println(foundEq.getStem());
-        		//System.out.println("Normalizer: "+normalizer);
-        		//System.out.println("Numerator: "+numerator);
-        		//System.out.println("probWgH: "+probWgH);
+        		System.out.println("Normalizer: "+normalizer);
+        		System.out.println("Numerator: "+numerator);
+        		System.out.println("probWgH: "+probWgH);
         		//Update W_x_s for all positions s, and for now just the observed x
+        		//Iterate through contexts (e.g. two to left, one to left, one to right, two to right)
         		for (int contextIdx=min; contextIdx<max; contextIdx++){
-	            	if (contextIdx!=numToken){
+        			//only update histories, not current word
+        			if (contextIdx!=numToken){
 		            	EquivalenceClass historyword = eqsMap.get(EquivalenceClass.getWordOfAppropriateForm(curSentTokens[contextIdx], m_caseSensitive));
 		            	if (historyword!=null){
 		            		int sPos=contextIdx-numToken;
+		            		//update all w's for seen word and given position index
 		            		updateWeightSeenWord(foundEq,sPos,historyword,probWgH);	            	
+		            		//update all w's for all OTHER words and given position index
 		            		updateWeightUnseenWords(foundEq, sPos, historyword, probWgH);
 		            	}
 	            	}
 	            }
         		//Update word feature representation, for now just of observed x
         		updateCSeenWord(foundEq, pairedHistory, normalizer);
+        		//Update word feature representation for all other, non-observed x's
         		updateCUnseenWords(foundEq);
 	            }
-	          }
+	          //Random spot check of parameters:
+	          //String testword = EquivalenceClass.getWordOfAppropriateForm("india", m_caseSensitive);
+	          //System.out.println("C for word --- india ---:"+m_C.get(testword));
+	          //System.out.println("W_-1 for word --- india ---:"+m_W.get(testword).get(-1));
+	        } //done updating based on single token
 	        
 	        
 	      }
@@ -405,9 +423,9 @@ public class Learner {
 	    for (String word : examplewords){
 	    	HashMap<String,Double> bestsim = new HashMap<String,Double>();
 	        ValueComparator bvc =  new ValueComparator(bestsim);
-	        TreeMap<String,Double> sorted_map = new TreeMap(bvc);
+	        TreeMap<String,Double> sorted_map = new TreeMap<String,Double>(bvc);
 	    	wordeq = eqsMap.get(EquivalenceClass.getWordOfAppropriateForm(word, m_caseSensitive));
-	    	System.out.println("C for word: "+m_C.get(wordeq));
+	    	System.out.println("C for word:--- "+m_C.get(wordeq)+" ---");
 	    	for (EquivalenceClass compareeq : m_C.keySet()){
 	    		if (wordeq!=compareeq){
 	    			cossim = cosineSimilarity(m_C.get(wordeq),m_C.get(compareeq));
@@ -415,7 +433,7 @@ public class Learner {
 	    		}
 	    	}
 	    	sorted_map.putAll(bestsim);
-	        System.out.println("Top 10 similar words and similarity scores for "+word+":");
+	        System.out.println("Top 10 similar words and similarity scores for --- "+word+" ---:");
 	        int i=0;
 	        for (String key : sorted_map.keySet()) {
 	        	if (i<10){
@@ -542,5 +560,6 @@ public class Learner {
 	protected double m_numTokens;
 	protected double m_InitialBias;
 	protected HashMap<EquivalenceClass, Double> m_Bias;
+	protected int numLearnLines;
 }
 
