@@ -1,0 +1,1 @@
+java -d64 -Dfile.encoding=utf8 -DCONFIG=/Users/anni/Projects/unsup_translation/babelClean/ptinduc_multitask/ptimt.xml -classpath $PATH:/Users/anni/Projects/unsup_translation/babelClean/ptinduc_multitask/bin/:/Users/anni/Projects/unsup_translation/babelClean/ptinduc_multitask/lib/* main.multitask.monoLearn

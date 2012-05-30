@@ -25,3 +25,15 @@
 *.maf
 *.mtc
 *.mtc0
+.DS_Store
+.classpath
+.settings
+bin
+Data
+preprocessing
+output
+log4j.*
+babel.log
+src/main/Test.java
+ArunMultiTask*
+Aptimt*
