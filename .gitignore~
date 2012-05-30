@@ -29,6 +29,7 @@
 .classpath
 .settings
 bin
+Data
 preprocessing
 output
 log4j.*

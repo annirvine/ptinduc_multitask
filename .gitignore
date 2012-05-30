@@ -28,7 +28,6 @@
 .DS_Store
 .classpath
 .settings
-bin
 Data
 preprocessing
 output
